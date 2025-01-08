@@ -1,0 +1,151 @@
+*************** PLAN ***************
+1) ^^^ Fill missing values (only found in categorical features) with mode & NOT DROPPING ANY FEATURES ^^^
+2) Fill missing values (only found in categorical features) with mode & DROPPING FEATURES that have low correlation / weak features
+3) Delete datapoints (rows) with missing values (only found in categorical features)
+
+
+4) FEATURE ENGINEERING 1 (from looking at top 10 most correlated features matrix): Create the following feature: Study_Effectiveness = Hours_Studied * Attendance 
+and test the performance on the following scenarios:
+      1. all_features: Original features + new feature (Study_Effectiveness)
+      2. new_feature_only: Original features + new feature WITHOUT Hours_Studied & Attendance
+      3. originals_only: Original features only
+
+5) FEATURE ENGINEERING 2: Create the following feature: Study_Life_Balance = Hours_Studied / (Sleep_Hours + Physical_Activity)
+and test the performance on the same previous scenarios.
+
+6) FEATURE ENGINEERING 3 (Same name as case FE-1 but different implementation): Create the following feature: Study_Effectiveness = Previous_Scores / (Hours_Studied + 1)  # +1 to avoid division by zero
+and test the performance on the same previous scenarios.
+
+
+7) ^^^ Remove rows with exam score greater than 100 ^^^
+
+
+8) Try Polynomial Regression with degrees 1-3
+
+
+9) Try the following models: Linear Regression, Decision Tree, Random Forest, Support Vector Regression, Gradient Boosting, XGBoost, Ridge, Lasso
+
+
+
+
+*************** PLANNED OBSERVATIONS (on Testing ONLY)  ***************
+
+*** CASE 1 ***
+R² Score: 0.7696 %
+RMSE: 1.8044
+
+
+
+*** CASE 2: ***
+Results get increasingly worse for every additional weak feature dropped. Worst result was when all weak features were dropped:
+R² Score: 0.7572 %
+RMSE: 1.8524
+
+
+
+*** CASE 3 ***
+R² Score: 0.7314 %
+RMSE: 2.0429
+
+
+
+*** CASE 4 ***
+Results for all_features (MARGINALLY BEST):
+R² Score: 0.7699 %
+RMSE: 1.8033
+
+
+Results for new_feature_only (WORST):
+R² Score: 0.6422 %
+RMSE: 2.2489
+
+
+Results for originals_only (same as Case 1):
+R² Score: 0.7696 %
+RMSE: 1.8044
+
+
+
+*** CASE 5 ***
+Results for all_features:
+R² Score: 0.7698 %
+RMSE: 1.8040
+
+Results for new_feature_only:
+R² Score: 0.6794 %
+RMSE: 2.1289
+
+Results for original_only (same as Case 1):
+R² Score: 0.7696 %
+RMSE: 1.8044
+
+
+
+*** CASE 6 ***
+Results for all_features:
+R² Score: 0.7685 %
+RMSE: 1.8088
+
+Results for new_feature_only:
+R² Score: 0.5688 %
+RMSE: 2.4688
+
+Results for original_only (same as Case 1):
+R² Score: 0.7696 %
+RMSE: 1.8044
+
+
+
+*** CASE 7 ***
+R² Score: 0.8250 %
+RMSE: 1.5213
+
+
+
+*** CASE 8 ***
+Degree 1 Results (just Linear Regression):
+R² Score: 0.8250 %
+RMSE: 1.5213
+
+Degree 2 Results:
+R² Score: 0.7996 %
+RMSE: 1.6279
+
+Degree 3 Results (Shows clear overfitting - training results were very good but testing is very bad):
+R² Score: -0.3387 %
+RMSE: 4.2075
+
+
+
+*** CASE 9 ***
+Linear Regression Results:
+R² Score: 0.8250 %
+RMSE: 1.5213
+
+SVR Results:
+R² Score: 0.8184 %
+RMSE: 1.5498
+
+Decision Tree Results:
+R² Score: 0.0367 %
+RMSE: 3.5691
+
+Random Forest Results:
+R² Score: 0.6928 %
+RMSE: 2.0157
+
+Gradient Boosting Results:
+R² Score: 0.7797 %
+RMSE: 1.7069
+
+XGBoost Results:
+R² Score: 0.7116 %
+RMSE: 1.9530
+
+Ridge Results:
+R² Score: 0.8248 %
+RMSE: 1.5222
+
+Lasso Results:
+R² Score: -0.0020 %
+RMSE: 3.6401
