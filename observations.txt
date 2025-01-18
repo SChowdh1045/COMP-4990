@@ -26,6 +26,15 @@ and test the performance on the same previous scenarios.
 9) Try the following models: Linear Regression, Decision Tree, Random Forest, Support Vector Regression, Gradient Boosting, XGBoost, Ridge, Lasso
 
 
+10) ^^^ Case 7 + Case 2 (i.e. removing outlier then dropping weak features) ^^^
+
+
+11) Case 10 + Case 8 (Polynomial Regression with degrees 1-3)
+
+
+12) Case 10 + Case 9 (Trying out different models)
+
+
 
 
 *************** PLANNED OBSERVATIONS (on Testing ONLY)  ***************
@@ -145,6 +154,93 @@ RMSE: 1.9530
 Ridge Results:
 R² Score: 0.8248 %
 RMSE: 1.5222
+
+Lasso Results:
+R² Score: -0.0020 %
+RMSE: 3.6401
+
+
+
+*** CASE 10 ***
+all removed:
+R² Score: 0.8052
+RMSE: 1.6049
+
+weakest numericals - health removed ('Sleep_Hours', 'Physical_Activity'):
+R² Score: 0.8206
+RMSE: 1.5405
+
+weakest categoricals removed ('School_Type', 'Gender', 'Peer_Influence'):
+R² Score: 0.8121
+RMSE: 1.5764
+
+weakest numericals + weakest categoricals removed:
+R² Score: 0.8076
+RMSE: 1.5950
+
+weakest numerical removed ('Sleep_Hours'):
+R² Score: 0.8251
+RMSE: 1.5209
+
+Sleep_Hours + School_Type removed   (BEST):
+R² Score: 0.8251
+RMSE: 1.5210
+
+school-related removed ('School_Type', 'Distance_from_Home'):
+R² Score: 0.8162
+RMSE: 1.5592
+
+demographics removed ('Gender', 'Internet_Access'):
+R² Score: 0.8185
+RMSE: 1.5494
+
+** Since Sleep_Hours + School_Type removed was best, I tried with all other features as a third feature to be removed, but R² Score was always < 0.82 **
+
+
+
+*** CASE 11 ***
+Degree 1 Results (just Linear Regression):
+R² Score: 0.8251 %
+RMSE: 1.5210
+
+Degree 2 Results:
+R² Score: 0.8069 %
+RMSE: 1.5979
+
+Degree 3 Results (Shows clear overfitting - training results were very good but testing is very bad):
+R² Score: 0.2506 %
+RMSE: 3.1481
+
+
+
+*** CASE 12 ***
+Linear Regression Results:
+R² Score: 0.8251 %
+RMSE: 1.5210
+
+SVR Results:
+R² Score: 0.8204 %
+RMSE: 1.5410
+
+Decision Tree Results:
+R² Score: 0.1090 %
+RMSE: 3.4325
+
+Random Forest Results:
+R² Score: 0.7018 %
+RMSE: 1.9858
+
+Gradient Boosting Results:
+R² Score: 0.7729 %
+RMSE: 1.7330
+
+XGBoost Results:
+R² Score: 0.7139 %
+RMSE: 1.9452
+
+Ridge Results:
+R² Score: 0.8249 %
+RMSE: 1.5219
 
 Lasso Results:
 R² Score: -0.0020 %
