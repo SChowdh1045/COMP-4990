@@ -17,7 +17,7 @@ and test the performance on the same previous scenarios.
 and test the performance on the same previous scenarios.
 
 
-7) ^^^ Remove rows with exam score greater than 100 ^^^
+7) ^^^ Remove rows with exam score greater than 100 (Outlier) ^^^
 
 
 8) Try Polynomial Regression with degrees 1-3
@@ -182,7 +182,7 @@ weakest numerical removed ('Sleep_Hours'):
 R² Score: 0.8251
 RMSE: 1.5209
 
-Sleep_Hours + School_Type removed   (BEST):
+Sleep_Hours + School_Type removed   *** (BEST) ***:
 R² Score: 0.8251
 RMSE: 1.5210
 

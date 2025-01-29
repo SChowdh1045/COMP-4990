@@ -1,1 +1,9 @@
-jupyter numpy pandas seaborn matplotlib scikit-learn xgboost
+jupyter
+numpy
+pandas
+seaborn
+matplotlib
+scikit-learn
+xgboost
+Flask
+Flask-Cors
