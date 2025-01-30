@@ -4,6 +4,8 @@ import pickle
 import pandas as pd
 import numpy as np
 
+# Need to do this to start from root directory (i.e. to load model_pipeline.pkl)
+# See Q&A
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,7 +14,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Load the trained pipeline
-with open('model_pipeline.pkl', 'rb') as f:
+with open('model_pipeline/model_pipeline.pkl', 'rb') as f:
     pipeline = pickle.load(f)
 
 @app.route('/predict', methods=['POST'])
@@ -86,6 +88,7 @@ def health_check():
         'status': 'healthy',
         'message': 'Server is running'
     })
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
