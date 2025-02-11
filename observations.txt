@@ -35,6 +35,9 @@ and test the performance on the same previous scenarios.
 12) Case 10 + Case 9 (Trying out different models)
 
 
+13) SYNTHETIC DATASET + CASE 10
+
+
 
 
 *************** PLANNED OBSERVATIONS (on Testing ONLY)  ***************
@@ -182,7 +185,7 @@ weakest numerical removed ('Sleep_Hours'):
 R² Score: 0.8251
 RMSE: 1.5209
 
-Sleep_Hours + School_Type removed   *** (BEST) ***:
+Sleep_Hours + School_Type removed     *** (BEST) ***:
 R² Score: 0.8251
 RMSE: 1.5210
 
@@ -245,3 +248,9 @@ RMSE: 1.5219
 Lasso Results:
 R² Score: -0.0020 %
 RMSE: 3.6401
+
+
+
+*** CASE 13 ***   (BEST)
+R² Score: 0.8476 %
+RMSE: 5.2516
