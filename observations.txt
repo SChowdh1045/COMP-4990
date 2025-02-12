@@ -252,5 +252,5 @@ RMSE: 3.6401
 
 
 *** CASE 13 ***   (BEST)
-R² Score: 0.8476 %
-RMSE: 5.2516
+R² Score: 0.8431 %
+RMSE: 5.7591
