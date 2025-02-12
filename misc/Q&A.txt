@@ -1,0 +1,998 @@
+#############################################  main.ipynb  #################################################
+
+
+
+
+1) Why is the argument to the `map` function a dictionary?
+
+The `map` function in Pandas is used to map values in a Series (a single column) to new values, based on a dictionary or function you provide.
+
+- **How it works**: When we provide a dictionary to `map`, Pandas looks at each value in the `Gender` column and replaces it according to the dictionary. For example, `"Male"` becomes `1` and `"Female"` becomes `0`.
+- **Why a dictionary?** The dictionary format (`{"Male": 1, "Female": 0}`) allows `map` to know what each specific value should be transformed into. In this case, each value in the column is an individual element (e.g., `"Male"` or `"Female"`) and not a list or dictionary. `map` simply applies the transformation for each element based on the dictionary.
+
+
+
+
+2) Why do we drop the first level in `pd.get_dummies()`?
+
+When creating dummy (binary) variables for categorical columns like "Family_Income" and "Teacher_Quality," each category level would typically become a separate column. But to avoid redundancy, we use `drop_first=True` to leave out one level.
+
+**Example with Family Income**:
+- **Without `drop_first=True`**: If we have categories `"Low"`, `"Medium"`, and `"High"`, `pd.get_dummies` would create three columns: `Family_Income_Low`, `Family_Income_Medium`, and `Family_Income_High`.
+- **With `drop_first=True`**: We’d only get `Family_Income_Medium` and `Family_Income_High`.
+
+Why is this done? Because if we know both `Family_Income_Medium` and `Family_Income_High` are `0`, we can infer that `Family_Income_Low` must be `1`. Dropping the first level avoids redundancy, which helps prevent collinearity issues in regression models and reduces the number of features, simplifying the model without losing information.
+So, you’re correct: `X` has a 2D structure (rows and columns), while `y` is 1D because it represents a single outcome variable aligned with each row in `X`.
+
+
+
+
+3) So does that mean one-hot encoding creates multiple columns for each category level, which increases the number of features?
+
+Yes, one-hot encoding creates multiple columns for each categorical feature with more than two levels. Here's why we use it for linear regression:
+
+1. For multi-level ordinal features (e.g., Teacher_Quality: Low/Medium/High):
+- Using numeric mapping (0,1,2) forces equal spacing between levels
+- Linear regression would treat "High" as 3x effect of "Low"
+- One-hot encoding lets model learn true relationship between levels
+
+2. For multi-level nominal features (e.g., Parental_Education_Level: High School/College/Postgraduate):
+- No natural order exists
+- One-hot encoding treats each category independently
+- Model learns individual effect of each category
+
+Example with `drop_first=True`:
+- Original: Teacher_Quality (Low/Medium/High)
+- Becomes: Teacher_Quality_Medium (0/1), Teacher_Quality_High (0/1)
+- If both are 0, implies Low
+
+Binary features (Yes/No, Male/Female) use simple 0/1 mapping since only two levels exist.
+
+So while one-hot encoding increases feature count, it's necessary for linear regression to properly interpret multi-level categorical data.
+
+
+[MORE ABOUT ENCODINGS]
+
+1. Ordinal Data (has meaningful order):
+- Examples: "low/medium/high", "near/moderate/far"
+- Better with Label Encoding (0,1,2)
+- Order is preserved in numerical representation
+
+2. Nominal Data (no meaningful order):
+- Examples: "red/green/blue", "cat/dog/bird"
+- Better with One-Hot Encoding
+- Prevents model from assuming numerical relationships
+
+HOWEVER, label encoding (0,1,2) should generally be avoided for linear regression, even for ordinal data, because:
+- Model will assume equal intervals between values, which may not reflect reality
+- Model treats difference between Low-Medium same as Medium-High
+- Can distort relationships in linear models
+
+The only exception might be if you have strong domain knowledge that the ordinal categories are truly equidistant.
+
+
+
+
+4) Why are `X` and `y` structured differently?
+
+In the context of machine learning, `X` (features) and `y` (target) are often structured differently:
+
+- **`X` (Features)**: 
+   - `X` is a DataFrame with multiple columns representing each feature (e.g., `Hours_Studied`, `Attendance`, etc.), so it is indeed two-dimensional.
+   - In this case, `X` is structured as a matrix with rows for each data sample and columns for each feature.
+
+- **`y` (Target)**:
+   - `y` is a single column, typically represented as a one-dimensional array or Series. Each element in `y` is the target value (in this case, `Exam_Score`) for the corresponding row in `X`.
+   - Although it looks like a single list, it’s actually a one-dimensional structure with each value aligned with a row in `X`.
+
+
+
+
+5) How to know which categorical features to keep in our dataset by analyzing their boxplots?
+
+I'll help explain how to evaluate categorical features using boxplots. For this, we want to look for:
+
+1. Differences in medians between categories
+2. Clear separations between boxes
+3. Non-overlapping distributions
+4. Consistent patterns
+
+When looking at multiple categorical features vs exam_score, we should look for:
+
+- Strong features would show:
+  - Clear differences in median scores between categories
+  - Minimal overlap between boxes
+  - Distinct progression (like Low to Medium to High)
+  - Relatively tight boxes (less spread within each category)
+
+- Weak features would show:
+  - Very similar medians across categories
+  - Heavy overlap between boxes
+  - No clear pattern or progression
+  - Wide, overlapping distributions
+
+For the case of Parental_Involvement, it shows:
+- A slight upward trend in medians
+- Some separation between categories
+- Moderate overlap between boxes
+- Consistent pattern (Low → Medium → High)
+
+This makes it a moderately useful feature - not extremely strong but definitely not useless enough to drop.
+
+
+
+
+6) Does the distribution of categories matter for each feature? So for gender for example, if male had 1000 and female had 400 (in a dataset of 1400 data points), does that have any significance?
+
+Yes, the distribution of categories (also known as class distribution or class balance) is very important! This imbalance can significantly impact your model. Let me explain why:
+
+Problems with Imbalanced Categories:
+1. Model Bias
+- The model might become biased toward the majority class (in your example, male)
+- It might learn patterns that are more representative of the majority class
+- Could perform poorly on the minority class (female)
+
+2. Statistical Significance
+- Harder to draw reliable conclusions about the minority class
+- Less confidence in patterns observed in the smaller group
+- May not have enough data to capture true relationships for minority class
+
+3. Performance Metrics
+- Overall accuracy might be misleading
+- Need to look at per-category metrics
+
+Using your example (1000 males, 400 females):
+```
+Total: 1400 students
+Males: 1000 (71.4%)
+Females: 400 (28.6%)
+```
+
+Options to Handle Imbalance:
+1. Keep as is if:
+- The imbalance reflects the real-world distribution
+- You have enough samples in each category (400 is still a decent sample size)
+- The model performs well on both categories
+
+2. Balance the data through:
+- Oversampling the minority class (SMOTE, random oversampling)
+- Undersampling the majority class
+- Class weights in the model
+
+3. Collect more data for underrepresented categories (if possible)
+
+Best Practices:
+1. Always check category distributions early in analysis
+2. Document any significant imbalances
+3. Consider stratified sampling in train/test splits
+4. Evaluate model performance separately for each category
+
+
+
+
+7) What's the difference between fit_transform() and transform() when scaling/normalizing data?
+
+fit_transform():
+- Calculates the scaling parameters (min and max for MinMaxScaler)
+- Applies these parameters to scale the data
+- Used ONLY on training data
+- Example: If data is 0-100, it learns that min=0, max=100
+
+transform():
+- Only applies the previously learned scaling parameters
+- Does NOT calculate new parameters
+- Used on test data or new data
+- Uses the same min/max learned from training data
+
+Why this difference matters:
+
+If you used fit_transform() on test data, you'd be "leaking" information from your test set
+You want to scale test data using ONLY what was learned from training data
+This mimics real-world scenario where you'd scale new data using original scaling parameters
+
+
+
+
+8) If I try different new features (engineered features) on their own and test their results and see that they give negligible or worse results compared to my current best result, should I even bother trying to combine the new features into the dataset and seeing their combined result?
+
+If individual new features show negligible or worse results, adding them together is unlikely to significantly improve model performance. Here's why:
+
+1. If individual features are weak:
+- Adding them together likely adds noise
+- Increases model complexity without benefit
+- Could potentially hurt performance due to curse of dimensionality
+
+Think of it like ingredients in cooking:
+- If you try several new spices individually and none improve the dish
+- Combining all those unhelpful spices probably won't make the dish better
+- Might actually make it worse
+
+However, there might be rare exceptions:
+- If you suspect strong interaction effects between the new features
+- If the features might work synergistically
+- If you have domain knowledge suggesting they might work better together
+
+Recommendation:
+- If you're getting similar or worse results with new features
+- And you've tried several different ones
+- Better to focus on optimizing your current best model
+- Or try different modeling approaches rather than adding more features
+
+
+
+
+9) What's the use of pipelines?
+
+Let me explain why pipelines are useful in machine learning:
+
+1. Main Problems Without Pipelines:
+- Easy to forget steps or do them in wrong order
+- Risk of data leakage when preprocessing
+- Have to manually repeat steps for new data
+- Code becomes messy and hard to maintain
+- Easy to make mistakes when applying transformations
+
+2. Benefits of Pipelines:
+```
+# Without Pipeline (messy and risky):
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)  # Easy to accidentally use fit_transform here
+model.fit(X_train_scaled, y_train)
+predictions = model.predict(X_test_scaled)
+
+# With Pipeline (clean and safe):
+pipe = Pipeline([
+    ('scaler', StandardScaler()),
+    ('model', RandomForestRegressor())
+])
+pipe.fit(X_train, y_train)
+predictions = pipe.predict(X_test)
+```
+
+3. Key Advantages:
+- Ensures preprocessing steps happen in correct order
+- Automatically applies same transformations to new data
+- Prevents data leakage by handling train/test properly
+- Keeps code organized and reproducible
+- Makes it easier to try different preprocessing steps
+- Reduces chances of errors
+
+4. Common Use Cases:
+- Scaling numerical features
+- Encoding categorical features
+- Feature selection
+- Dimensionality reduction
+- Combining multiple preprocessing steps
+- Cross-validation
+- Model evaluation
+
+Think of it like a recipe:
+- Without pipeline: Manual steps, easy to mess up order
+- With pipeline: Automated sequence, consistent results
+
+
+
+
+10) What do ColumnTransformer() and Pipeline() functions do?
+
+Let me break down both components:
+
+1. ColumnTransformer:
+```
+linear_preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', MinMaxScaler(), numerical_features),
+        ('cat', 'passthrough', categorical_features)
+    ])
+```
+
+Each transformer is a tuple with 3 elements:
+- 'num': custom name for this transformation ('cat' is also a custom name)
+- MinMaxScaler(): the transformer to apply
+- numerical_features: which columns to apply it to
+
+So this reads as:
+- Apply MinMaxScaler to numerical_features
+- 'passthrough' means leave categorical_features unchanged
+
+Different examples:
+```
+# SVR: Uses StandardScaler instead
+('num', StandardScaler(), numerical_features)
+
+# Trees: 'passthrough' means don't transform
+('num', 'passthrough', numerical_features)
+```
+
+
+2. Pipeline:
+```
+'Linear Regression': Pipeline([
+    ('preprocessor', linear_preprocessor),
+    ('regressor', LinearRegression())
+])
+```
+Pipeline defines steps in sequence:
+- ('preprocessor', linear_preprocessor): First step, custom name and transformer
+- ('regressor', LinearRegression()): Second step, custom name and model
+- The custom names/labels in ColumnTransformer (i.e. cat,num) and Pipeline (i.e. preprocessor,regressor) are useful for accessing specific steps later or during debugging.
+
+The pipeline ensures:
+1. Data goes through preprocessor first
+2. Preprocessed data goes to regressor
+3. Steps happen in correct order
+4. Same preprocessing applied to new data
+
+
+
+
+11) Can you explain the flow of the pipeline from when we pass it through `pipeline.fit(X_train, y_train)`?
+
+Let me break down how the pipeline flows:
+
+When you do `pipeline.fit(X_train, y_train)`, where `pipeline` is your pipeline (duh), here's what happens in sequence:
+
+1. First Step ('preprocessor'):
+```
+Pipeline([
+    ('preprocessor', linear_preprocessor),  # This runs first
+    ('regressor', LinearRegression())
+])
+```
+- Applies MinMaxScaler to numerical features
+- Passes through categorical features unchanged
+- Since numerical and categorical features only belong to X_train, only X_train is transformed and preprocessed
+- Outputs transformed X_train
+
+2. Second Step ('regressor'):
+- Takes transformed X_train from step 1
+- Takes original y_train (y doesn't get nor need preprocessing)
+- Fits LinearRegression on this data
+
+Similarly for `pipeline.predict(X_test)`:
+1. First applies same preprocessing to X_test
+2. Then uses fitted LinearRegression to make predictions
+
+Visual Flow:
+```
+X_train ─→ preprocessor ─→ transformed X_train ─→ regressor.fit() ─→ fitted model
+y_train ────────────────────────────────────────→─┘
+
+X_test ──→ preprocessor ─→ transformed X_test ──→ regressor.predict() ─→ predictions
+```
+
+So:
+- 'pipeline' is the entire pipeline
+- The pipeline automatically handles the flow of data through each step
+- You don't need to manually call each step
+- Each step's output becomes the next step's input
+
+
+
+
+12) Are the methods fit(), predict(), and score() LinearRegression (or any of the other models) methods or Pipeline methods?
+
+These methods (fit(), predict(), score()) are Pipeline methods, but they internally call the corresponding methods of the final estimator (like LinearRegression()). Here's how it works:
+
+1. When you call `pipeline.fit(X_train, y_train)`:
+```
+# It's a Pipeline method that:
+# 1. Applies preprocessor to X_train
+# 2. Then calls LinearRegression().fit() with transformed data
+pipeline.fit(X_train, y_train)
+```
+
+2. When you call `pipeline.predict()`:
+```
+# It's a Pipeline method that:
+# 1. Applies same preprocessing to new data
+# 2. Then calls LinearRegression().predict()
+predictions = pipeline.predict(X_test)
+```
+
+3. Same for `pipeline.score()`:
+```
+# It's a Pipeline method that:
+# 1. Applies preprocessing
+# 2. Then calls LinearRegression().score()
+score = pipeline.score(X_test, y_test)
+```
+
+Think of it like this:
+- Pipeline provides these methods as wrappers
+- They ensure preprocessing happens first
+- Then they delegate to the final estimator's methods
+- You don't need to call the methods separately
+
+Without Pipeline, you'd have to do:
+```
+# Manual steps
+X_train_transformed = preprocessor.fit_transform(X_train)
+model.fit(X_train_transformed, y_train)
+
+X_test_transformed = preprocessor.transform(X_test)
+predictions = model.predict(X_test_transformed)
+```
+
+With Pipeline, it's just:
+```
+# Pipeline handles all steps
+pipeline.fit(X_train, y_train)
+predictions = pipeline.predict(X_test)
+```
+
+
+
+
+13) When the regressor/model gets trained/fitted on the transformed data, is that trained model now attached to the pipeline?
+
+Yes, exactly! The trained model becomes part of the pipeline. Let me explain:
+
+1. During `pipeline.fit()`:
+```
+Pipeline([
+    ('preprocessor', linear_preprocessor),
+    ('regressor', LinearRegression())
+])
+```
+- Preprocessor (just scaler in our case) gets fitted to X_train (learns scaling parameters)
+- LinearRegression gets fitted to transformed data
+- Both fitted objects stay attached to pipeline
+
+2. Then during `pipeline.predict()`:
+- Pipeline uses the same fitted preprocessor (with learned scaling parameters)
+- Then uses the same trained/fitted LinearRegression model
+- Everything stays connected in the pipeline
+
+Think of it like assembling and training a machine:
+- First time (fit):
+  1. Build preprocessor and learn its parameters
+  2. Train model on processed data
+  3. Keep both as part of the machine
+
+- Later use (predict):
+  1. Use same preprocessor settings
+  2. Feed through same trained model
+  3. Get predictions
+
+The pipeline maintains this entire fitted system, so you don't have to keep track of separate pieces or their states.
+
+
+
+
+14) 
+
+
+
+
+#############################################  app.py  #################################################
+
+
+
+
+1) Few questions about data = request.get_json():
+1. I see that you did data['hoursStudied']. Is data a hashmap (i.e. json)?
+2. Why are we transforming to float for all of them (i.e. float(data['hoursStudied']) )
+3. input_data is a pandas data frame and we're doing something like this for all the form fields: 'Hours_Studied': [float(data['hoursStudied'])]. Why is the value an array containing a float?
+
+Great questions about the data handling in Flask! Let me explain each part:
+
+1. `data = request.get_json()`:
+   - Yes, `data` is a Python dictionary that comes from parsing the JSON sent from the frontend
+   - When the frontend sends JSON like:
+     ```javascript
+     {
+       "hoursStudied": "23",
+       "attendance": "95"
+     }
+     ```
+   - Flask's `get_json()` converts this into a Python dict where you can access values with `data['hoursStudied']`
+
+2. `float(data['hoursStudied'])`:
+   - Form data from the frontend comes as strings, even for numbers
+   - If the user types "23" in a number input, it comes as the string "23"
+   - We use `float()` to convert these strings to numerical values
+   - This is necessary because our model expects numerical data, not strings
+
+3. `'Hours_Studied': [float(data['hoursStudied'])]`:
+   - The square brackets create a list with one value because pandas DataFrame expects data in this format
+   - When creating a DataFrame for a single prediction, each column needs to be a list
+   - Even though we're only predicting for one student, scikit-learn expects 2D input (a matrix where each row is a sample)
+   - Examples:
+     ```python
+     # This creates a DataFrame with 1 row, 2 columns
+     input_data1 = pd.DataFrame({
+         'Hours_Studied': [2.5],     # List with one value
+         'Attendance': [95.0]        # List with one value
+     })
+     
+     print(input_data1.shape)  # Output: (1, 2) - 1 row, 2 columns
+
+     # This creates a DataFrame with 4 rows, 2 columns
+     input_data2 = pd.DataFrame({
+         'Hours_Studied': [2.5, 4.5, 9, 12],
+         'Attendance': [95.0, 25, 53, 78]
+     })
+     
+     print(input_data2.shape)  # Output: (4, 2) - 4 rows, 2 columns
+     ```
+
+If we didn't use lists, we'd get an error because the model expects 2D input, even for a single prediction.
+
+
+
+
+2) What does `sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))` do?
+
+Let's break down what that code does:
+
+1. `os.path.abspath(__file__)` gets the absolute path of the current file (app.py)
+   - e.g., `/Users/you/project/src/app.py`
+
+2. `os.path.dirname()` gets the parent directory. When used twice:
+   - First `dirname`: gets `src` directory
+   - Second `dirname`: gets the project root directory
+   - e.g., `/Users/you/project`
+
+3. `sys.path.append()` adds this root directory to Python's module search path
+   - Python is now always looking from the root project directory
+   - This is why it can find and import your pipeline code (assuming the .pkl file is in root directory)
+   - If the file is nested under folder(s), you have to provide the file path starting from the folder at the root directory
+
+So when you run the Flask app, Python can find all modules regardless of where they are in your project directory.
+
+
+
+
+#############################################  model_utils.py  #################################################
+
+
+
+
+1) When does the encoding and scaling get applied in the pipeline? Is it when when we call create_model_pipeline() or pipeline.fit(X_train, y_train) (both in main.ipynb)?
+
+The encoding and scaling are applied when you call `pipeline.fit()`, not when you create the pipeline. Here's the sequence:
+
+1. `create_model_pipeline()` only creates the structure of the pipeline:
+   - Sets up the transformers (BinaryEncoder, OneHotEncoder, MinMaxScaler)
+   - Defines which features each transformer should process
+   - But no actual transformations happen yet
+
+2. `pipeline.fit(X_train, y_train)` is when the actual encoding and scaling happen:
+   - BinaryEncoder.fit() learns the 0/1 mappings from your training data
+   - OneHotEncoder.fit() learns the unique categories from your multi-category features
+   - MinMaxScaler.fit() learns the min and max values from your numerical features
+   - Then it applies these transformations to X_train
+   - Finally, it fits the LinearRegression model on the transformed data
+
+
+
+
+2) 2 questions about BinaryEncoder class:
+1. I see that we did BinaryEncoder(BaseEstimator, TransformerMixin). Is Binary Encoder a child class of BaseEstimator and TransformerMixin?
+2. We instantiate BinaryEncoder by doing this: binary_cat_transformer = BinaryEncoder(binary_features). But when do we call the methods fit() and transform()? Are they custom methods or overridden methods from the class(es) we inherited from?
+
+Great questions about the class structure!
+
+1. Yes, `BinaryEncoder` is inheriting from both `BaseEstimator` and `TransformerMixin`. In Python, this is called multiple inheritance. The syntax is:
+```python
+class ChildClass(Parent1, Parent2):
+    # class implementation
+```
+So `BinaryEncoder` inherits functionality from both parent classes.
+
+2. `fit()` and `transform()` are methods we're overriding from `TransformerMixin`. We never call these methods directly - the scikit-learn Pipeline calls them automatically:
+
+- When you do `pipeline.fit(X_train, y_train)`, the Pipeline internally calls:
+  ```python
+  # Happens behind the scenes
+  binary_cat_transformer.fit(X_train)
+  transformed_data = binary_cat_transformer.transform(X_train)
+  ```
+
+- When you do `pipeline.predict(X_test)`, the Pipeline internally calls:
+  ```python
+  # Happens behind the scenes
+  transformed_data = binary_cat_transformer.transform(X_test)
+  ```
+
+The reason we inherit from these classes:
+- `BaseEstimator`: Provides basic functionality that all scikit-learn estimators should have
+- `TransformerMixin`: Provides the interface that scikit-learn expects for data transformation (fit and transform methods)
+
+This is why we can include our custom `BinaryEncoder` in a scikit-learn Pipeline - it follows the same interface that scikit-learn expects from all transformers.
+
+
+
+
+3) BinaryEncoder is our custom class. Do the built-in classes OneHotEncoder and MinMaxScaler also call fit() and transform() (or any other methods) internally?
+
+Yes, exactly! OneHotEncoder and MinMaxScaler are built-in scikit-learn classes that also implement fit() and transform() methods. They follow the same transformer interface as our custom BinaryEncoder:
+
+- `OneHotEncoder`:
+```python
+# Inside pipeline.fit()
+one_hot_encoder.fit(X_train)           # Learns unique categories
+transformed_data = one_hot_encoder.transform(X_train)  # Creates binary columns
+
+# For example, if you have a column "Color" with values ["red", "blue", "green"]
+# fit() learns these categories
+# transform() creates columns like "Color_red", "Color_blue", "Color_green" with 0s and 1s
+```
+
+- `MinMaxScaler`:
+```python
+# Inside pipeline.fit()
+scaler.fit(X_train)           # Learns min and max values
+scaled_data = scaler.transform(X_train)  # Scales data to [0,1] range
+
+# For example, if a column has values [0, 50, 100]
+# fit() learns min=0 and max=100
+# transform() would convert these to [0, 0.5, 1]
+```
+
+This consistent interface (fit/transform) is a core design pattern in scikit-learn. That's why we can:
+1. Mix built-in transformers (OneHotEncoder, MinMaxScaler)
+2. Custom transformers (BinaryEncoder)
+3. Chain them together in a Pipeline
+
+They all speak the same "language" of fit() and transform().
+
+
+
+
+4) I see that you're doing .fit(X_train) but not .fit(X_train, y_train). Why are we leaving out y_train? Don't we need it in the pipeline?
+
+Good observation! The reason is that `y_train` is only needed for the actual model training (LinearRegression in this case), not for the preprocessing steps. Here's why:
+
+1. Preprocessing transformers (encoders, scalers):
+```python
+# Only need X because they transform features independently of the target
+one_hot_encoder.fit(X_train)           # Don't need y_train
+scaler.fit(X_train)                    # Don't need y_train
+binary_encoder.fit(X_train)            # Don't need y_train
+```
+
+2. Model training:
+```python
+# Needs both X and y because it's learning the relationship between features and target
+linear_regression.fit(transformed_X_train, y_train)  # Needs y_train
+```
+
+When you do `pipeline.fit(X_train, y_train)`, the Pipeline:
+1. First applies all preprocessors using just X_train
+2. Then passes the transformed X_train and y_train to the model
+
+That's why in our BinaryEncoder we have:
+```python
+def fit(self, X, y=None):  # y is optional parameter
+    # Only use X to learn the mappings
+    for feature in self.binary_features:
+        unique_values = list(X[feature].unique())
+        self.binary_mappings[feature] = {unique_values[0]: 0, unique_values[1]: 1}
+    return self
+```
+
+The `y=None` parameter follows scikit-learn's convention for transformers, indicating that the target variable isn't needed for the transformation.
+
+
+
+
+5) Normally we would do LinearRegression().fit(X_train, y_train) which trains the model on the training dataset. pipeline.fit(X_train, y_train) runs the fit() method from the preprocessing classes (i.e. BinaryEncoder, OneHotEncoder, MinMaxScaler, etc...) then applies transformer() method. And the fit() method from the preprocessing classes have their own use cases. So, does the method fit() have different use cases when used in different scenarios?
+
+Yes, exactly! While all these classes use a method called `fit()`, what happens inside `fit()` is different for each type of class:
+
+1. **LinearRegression.fit(X, y)**:
+   - Actually trains the model
+   - Learns coefficients and intercept
+   - Needs both X and y to learn the relationship between features and target
+```python
+linear_reg = LinearRegression()
+linear_reg.fit(X_train, y_train)  # Learns β0 + β1x1 + β2x2 + ...
+```
+
+2. **BinaryEncoder.fit(X)**:
+   - Just learns the mapping of categories to 0/1
+   - Doesn't train anything
+   - Only needs X to see what unique values exist
+```python
+encoder = BinaryEncoder(binary_features)
+encoder.fit(X_train)  # Learns {"Yes": 1, "No": 0}
+```
+
+3. **OneHotEncoder.fit(X)**:
+   - Learns what categories exist
+   - Creates mapping for dummy columns
+   - Only needs X to learn categories
+```python
+one_hot = OneHotEncoder()
+one_hot.fit(X_train)  # Learns ["red", "blue", "green"] for color column
+```
+
+4. **MinMaxScaler.fit(X)**:
+   - Learns min and max values
+   - Calculates scaling parameters
+   - Only needs X to find ranges
+```python
+scaler = MinMaxScaler()
+scaler.fit(X_train)  # Learns min=0, max=100 for scaling
+```
+
+5. **Pipeline.fit(X, y)**:
+   - Orchestrates all the other fit() methods
+   - Calls fit() on each component in order
+   - Passes y only to the final estimator (model)
+```python
+pipeline.fit(X_train, y_train)
+# 1. Calls encoder.fit(X)
+# 2. Calls one_hot.fit(X)
+# 3. Calls scaler.fit(X)
+# 4. Calls model.fit(transformed_X, y)
+```
+
+So while they all use the same method name `fit()` (following scikit-learn's convention), each implementation does something specific to that class's purpose:
+- Preprocessors: Learn how to transform data
+- Models: Learn relationships in data
+- Pipeline: Coordinate the entire process
+
+
+
+
+#############################################  numerical_analysis.py  #################################################
+
+
+
+
+1) Explain the logic of numerical_analysis.py
+
+Let me break down the logic and math step by step:
+
+1. Quartile Division:
+```python
+low_threshold = df[feature].quantile(0.25)    # 25th percentile
+high_threshold = df[feature].quantile(0.75)   # 75th percentile
+```
+- If you ordered all values from lowest to highest:
+  - 25% of values are below low_threshold
+  - 25% of values are above high_threshold
+  - 50% of values are between thresholds
+
+2. Group Creation:
+```python
+# Low group: bottom 25%
+low_scores = df[df[feature] <= low_threshold]['Exam_Score'].mean()
+
+# Mid group: middle 50%
+mid_scores = df[(df[feature] > low_threshold) & 
+                (df[feature] < high_threshold)]['Exam_Score'].mean()
+
+# High group: top 25%
+high_scores = df[df[feature] >= high_threshold]['Exam_Score'].mean()
+```
+
+Example with Hours_Studied:
+```
+low_threshold = 16.0  (25th percentile)
+high_threshold = 24.0 (75th percentile)
+
+Low group:  ≤16 hours    → mean exam score = 65.15
+Mid group:  16-24 hours  → mean exam score = 67.24
+High group: ≥24 hours    → mean exam score = 69.37
+```
+
+3. Impact Calculation:
+```python
+max_diff = high_scores - low_scores  # 69.37 - 65.15 = 4.22 points
+```
+- Shows maximum effect the feature can have
+- Larger difference = stronger impact on exam scores
+- Used to calculate feature weights for synthetic data generation
+
+This approach:
+- Gives balanced groups (25%/50%/25%)
+- Shows how exam scores change across feature ranges
+- Makes numerical features comparable (all measured in point differences)
+
+
+
+
+2) Can you explain the syntax of `low_scores = df[df[feature] <= low_threshold]['Exam_Score'].mean()`? Using low_scores here but applies to the others as well.
+
+Let me break down each step:
+
+1. `df[feature] <= low_threshold`
+   - Creates a boolean mask (array of True/False values)
+   - For each row, checks if value in feature column is <= low_threshold
+   - Example for Hours_Studied:
+     ```python
+     df['Hours_Studied'] <= 16.0
+     # [True, False, True, ...]  # True for rows where Hours_Studied ≤ 16
+     ```
+
+2. `df[df[feature] <= low_threshold]`
+   - Uses the boolean mask to filter the DataFrame
+   - Keeps only rows where mask is True
+   - Returns a smaller DataFrame with only rows where feature value ≤ low_threshold
+   - Example:
+     ```python
+     # Only keeps rows where Hours_Studied ≤ 16
+     # Each row has all columns (Hours_Studied, Attendance, etc.)
+     ```
+
+3. `df[df[feature] <= low_threshold]['Exam_Score']`
+   - From the filtered DataFrame, selects only the 'Exam_Score' column
+   - Returns a Series of exam scores for students with low feature values
+   - Example:
+     ```python
+     # Array of exam scores where Hours_Studied ≤ 16
+     # [65, 62, 67, ...]
+     ```
+
+4. `df[df[feature] <= low_threshold]['Exam_Score'].mean()`
+   - Calculates the average of those exam scores
+   - Example:
+     ```python
+     # Average exam score for students with Hours_Studied ≤ 16
+     # 65.15
+     ```
+
+This sequence filters data, then selects specific values, then calculates their mean.
+
+
+
+
+#############################################  categorical_analysis.py  #################################################
+
+
+
+
+1) Explain the logic of categorical_analysis.py
+
+Let me break down both the logic and syntax:
+
+1. Group Statistics Calculation:
+```python
+stats = df.groupby(feature)['Exam_Score'].agg(['mean', 'std', 'count'])
+```
+- `df.groupby(feature)`: Groups data by categorical feature (e.g., Male/Female for 'Gender')
+- `['Exam_Score']`: Select exam score column for analysis
+- `.agg(['mean', 'std', 'count'])`: Calculate for each group:
+  - mean: average exam score
+  - std: standard deviation (spread of scores)
+  - count: number of students
+
+Example (Learning_Disabilities):
+```
+                      Mean Score  Std Dev  Count
+Learning_Disabilities                           
+No                         67.35     3.85   5912
+Yes                        66.27     4.07    695
+```
+
+2. Percentage Calculation:
+```python
+stats['percentage'] = (stats['count'] / len(df) * 100).round(2)
+```
+- `stats['count']`: Number in each group
+- `len(df)`: Total number of students
+- `* 100`: Convert to percentage
+- `.round(2)`: Round to 2 decimal places
+
+Example:
+```
+No:  5912/6607 * 100 = 89.48%
+Yes: 695/6607 * 100 = 10.52%
+```
+
+3. Syntax Explanations:
+```python
+stats.columns = ['Mean Score', 'Std Dev', 'Count', '% of Total']
+# Renames columns for better readability:
+# 'mean' → 'Mean Score'
+# 'std' → 'Std Dev'
+# 'count' → 'Count'
+# 'percentage' → '% of Total'
+```
+
+This approach:
+- Uses natural categories (no artificial grouping needed)
+- Shows distribution of students across categories
+- Calculates mean scores to see category impacts
+- Includes std dev to see score variation within categories
+
+
+
+
+2) Can you explain what this does?: `df.groupby(feature)['Exam_Score']`
+
+Let's break it down step by step:
+
+1. `df.groupby(feature)`:
+- Groups the data by each unique category within that feature
+- For Gender, it creates two groups: Male and Female
+- For Parental_Involvement, it creates three groups: High, Medium, Low
+
+2. `df.groupby(feature)['Exam_Score']`:
+- After grouping by categories, selects only the Exam_Score column for each group
+- Now we have Exam_Score values split by categories
+
+Example for Gender:
+```python
+df.groupby('Gender')  # Creates groups:
+# Group 1 (Male): All rows where Gender = Male
+# Group 2 (Female): All rows where Gender = Female
+
+df.groupby('Gender')['Exam_Score']  # For each group, gets Exam_Scores:
+# Male group: [67, 65, 70, ...] (exam scores of male students)
+# Female group: [66, 69, 71, ...] (exam scores of female students)
+
+# Then .agg() calculates stats for each group's exam scores:
+Male: 
+  - mean: 67.23
+  - std: 3.77
+  - count: 3814
+Female:
+  - mean: 67.24
+  - std: 4.05
+  - count: 2793
+```
+
+The grouping is by categories, then we select Exam_Score values from each group to analyze them.
+
+
+
+
+3) Are the list items in .agg(['mean', 'std', 'count']) custom or prebuilt?
+
+Those are prebuilt aggregation functions in pandas. They're commonly used statistical functions you can use in `.agg()`:
+
+Common prebuilt aggregations:
+- `'mean'`: average
+- `'std'`: standard deviation
+- `'count'`: number of items
+- `'sum'`: total
+- `'min'`: minimum value
+- `'max'`: maximum value
+- `'median'`: middle value
+- `'var'`: variance
+
+You can use these in any combination:
+```python
+# Use different combinations
+stats = df.groupby(feature)['Exam_Score'].agg(['mean', 'max', 'min'])
+stats = df.groupby(feature)['Exam_Score'].agg(['median', 'std'])
+
+# Can also use multiple columns
+stats = df.groupby(feature).agg({
+    'Exam_Score': ['mean', 'std'],
+    'Hours_Studied': ['mean', 'max']
+})
+```
+
+You can also create custom aggregation functions, but for basic statistical calculations, the prebuilt ones are commonly used.
+
+
+
+
+4) Is `percentage` a built-in key or are we making a custom key here?: stats['percentage']
+
+`percentage` is a custom key - we're creating a new column named 'percentage' in the stats DataFrame. We could have named it anything:
+
+```python
+# These all do the same thing, just with different column names
+stats['percentage'] = (stats['count'] / len(df) * 100).round(2)
+stats['percent_of_total'] = (stats['count'] / len(df) * 100).round(2)
+stats['my_custom_name'] = (stats['count'] / len(df) * 100).round(2)
+```
+
+In contrast, `'count'` in the preceding line was a built-in aggregation function:
+```python
+# 'count' is built-in
+stats = df.groupby(feature)['Exam_Score'].agg(['mean', 'std', 'count'])
+
+# Then we use the 'count' column to calculate our custom 'percentage' column
+stats['percentage'] = (stats['count'] / len(df) * 100).round(2)
+```
+
+This is similar to creating any new column in a DataFrame - you're defining a new key and assigning values to it.
